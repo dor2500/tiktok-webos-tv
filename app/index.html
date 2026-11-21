@@ -7,33 +7,157 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main id="app" class="app-shell">
-    <section id="loading-screen" class="screen active" aria-live="polite">
-      <div class="logo-stage">
-        <div class="logo-glow"></div>
-        <img src="largeIcon.png" alt="TikTok Logo" class="app-logo" width="160" height="160" />
-      </div>
-      <h1 class="brand-title">TikTok</h1>
-      <div class="loader-track" role="progressbar" aria-label="Loading TikTok">
-        <div class="loader-bar"></div>
-      </div>
-      <p id="status-text" class="status-text">Connecting to TikTok...</p>
-    </section>
+  <main id="app" class="tv-stage">
+    <div id="ambient-bg" class="ambient-bg"></div>
 
-    <section id="error-screen" class="screen" hidden aria-live="assertive">
-      <div class="error-card">
-        <img src="largeIcon.png" alt="TikTok" class="error-logo" width="96" height="96" />
-        <h2 class="error-title">Unable to Reach TikTok</h2>
-        <p id="error-detail" class="error-detail">
-          Please check your TV's internet connection and try again.
-        </p>
-        <div class="error-actions">
-          <button id="retry-btn" class="tv-btn primary focused" type="button">Retry</button>
-          <button id="exit-btn" class="tv-btn secondary" type="button">Exit App</button>
+    <!-- Left OLED-safe remote hints -->
+    <aside class="side-hints left" aria-hidden="true">
+      <div class="hint-row"><kbd>▲</kbd><kbd>▼</kbd><span>Swipe Video</span></div>
+      <div class="hint-row"><kbd>OK</kbd><span>Play / Pause</span></div>
+      <div class="hint-row"><kbd>▶</kbd><span>Like Video</span></div>
+      <div class="hint-row"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>Home / Search / Profile</span></div>
+      <div class="hint-row"><kbd>BACK</kbd><span>Close / Exit</span></div>
+    </aside>
+
+    <!-- Centered 9:16 Phone Viewport -->
+    <section id="phone-viewport" class="phone-viewport" aria-label="TikTok Mobile TV">
+      <!-- HOME VIEW -->
+      <div id="view-home" class="tab-view active">
+        <header class="mobile-header">
+          <div class="header-tabs">
+            <button id="tab-following" class="header-tab" type="button">Following</button>
+            <button id="tab-foryou" class="header-tab active" type="button">For You</button>
+          </div>
+        </header>
+
+        <div id="feed-track" class="feed-track"></div>
+
+        <div id="play-badge" class="play-badge" hidden>
+          <svg viewBox="0 0 48 48" width="64" height="64" fill="currentColor">
+            <path d="M16 10v28l22-14z" />
+          </svg>
+        </div>
+
+        <div id="loading-overlay" class="overlay-screen">
+          <img src="largeIcon.png" alt="TikTok" class="loading-logo" width="112" height="112" />
+          <div class="loader-track"><div class="loader-bar"></div></div>
+          <p id="status-text" class="status-text">Loading For You feed...</p>
+        </div>
+
+        <div id="error-overlay" class="overlay-screen" hidden>
+          <img src="largeIcon.png" alt="TikTok" class="error-logo" width="84" height="84" />
+          <h2 class="error-title">Couldn't Load Feed</h2>
+          <p id="error-detail" class="error-detail">Check your TV connection and retry.</p>
+          <div class="error-actions">
+            <button id="retry-btn" class="tv-btn primary focused" type="button">Retry</button>
+            <button id="exit-btn" class="tv-btn secondary" type="button">Exit</button>
+          </div>
         </div>
       </div>
+
+      <!-- SEARCH / DISCOVER VIEW -->
+      <div id="view-search" class="tab-view subpage" hidden>
+        <div class="subpage-header">
+          <h2>Discover</h2>
+        </div>
+        <form id="search-form" class="search-bar-wrap">
+          <input id="search-input" class="search-input" type="text" placeholder="Enter @username (e.g. @tiktok)" />
+          <button class="search-go" type="submit">Go</button>
+        </form>
+        <div id="search-result" class="profile-preview-card" hidden></div>
+        <div class="quick-creators">
+          <p class="section-label">Popular Creators</p>
+          <div class="chip-grid">
+            <button class="creator-chip" data-user="tiktok" type="button">@tiktok</button>
+            <button class="creator-chip" data-user="khaby.lame" type="button">@khaby.lame</button>
+            <button class="creator-chip" data-user="zachking" type="button">@zachking</button>
+            <button class="creator-chip" data-user="redbull" type="button">@redbull</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE / ACCOUNT VIEW -->
+      <div id="view-profile" class="tab-view subpage" hidden>
+        <div class="subpage-header">
+          <h2 id="profile-title">Profile</h2>
+        </div>
+
+        <!-- Logged Out State -->
+        <div id="profile-logged-out" class="account-empty">
+          <img src="largeIcon.png" alt="TikTok" class="account-avatar-placeholder" width="96" height="96" />
+          <h3>Connect Your TikTok Account</h3>
+          <p>Pair from your phone browser to sync your TikTok username and optional session for personalized feeds.</p>
+          <button id="btn-start-pairing" class="tv-btn primary full-w" type="button">Pair with Phone</button>
+          <div class="divider-or"><span>or quick username</span></div>
+          <form id="quick-login-form" class="quick-login-form">
+            <input id="quick-username" class="search-input" type="text" placeholder="@username" />
+            <button class="search-go" type="submit">Connect</button>
+          </form>
+        </div>
+
+        <!-- Logged In State -->
+        <div id="profile-logged-in" class="profile-body" hidden>
+          <img id="my-avatar" class="profile-avatar" src="largeIcon.png" alt="" />
+          <h3 id="my-nickname" class="profile-nickname">@user</h3>
+          <p id="my-handle" class="profile-handle">@user</p>
+          <div class="profile-stats">
+            <div><strong id="stat-following">0</strong><span>Following</span></div>
+            <div><strong id="stat-followers">0</strong><span>Followers</span></div>
+            <div><strong id="stat-likes">0</strong><span>Likes</span></div>
+          </div>
+          <p id="my-bio" class="profile-bio"></p>
+          <span id="session-badge" class="session-badge">Public Profile Mode</span>
+          <button id="btn-logout" class="tv-btn secondary full-w" type="button">Disconnect Account</button>
+        </div>
+      </div>
+
+      <!-- COMMENTS DRAWER -->
+      <div id="comments-drawer" class="bottom-drawer" hidden>
+        <div class="drawer-header">
+          <span id="comments-title">Comments</span>
+          <button id="close-comments" class="drawer-close" type="button">✕</button>
+        </div>
+        <div id="comments-list" class="comments-list"></div>
+      </div>
+
+      <!-- PHONE PAIRING MODAL -->
+      <div id="pairing-modal" class="bottom-drawer pairing-modal" hidden>
+        <div class="drawer-header">
+          <span>Pair with Phone</span>
+          <button id="close-pairing" class="drawer-close" type="button">✕</button>
+        </div>
+        <div class="pairing-body">
+          <p class="pairing-step">1. Open your phone browser (on the same Wi-Fi) and go to:</p>
+          <div id="pairing-url" class="pairing-url">Starting...</div>
+          <p class="pairing-step">2. Enter this 4-digit PIN:</p>
+          <div id="pairing-pin" class="pairing-pin">----</div>
+          <p id="pairing-status" class="pairing-status">Waiting for phone connection...</p>
+        </div>
+      </div>
+
+      <!-- BOTTOM PHONE NAVIGATION BAR -->
+      <nav class="bottom-nav" aria-label="Primary Navigation">
+        <button id="nav-home" class="nav-item active" type="button">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <span>Home</span>
+        </button>
+        <button id="nav-search" class="nav-item" type="button">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <span>Discover</span>
+        </button>
+        <button id="nav-profile" class="nav-item" type="button">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+          <span id="nav-profile-label">Profile</span>
+        </button>
+      </nav>
     </section>
+
+    <aside class="side-hints right" aria-hidden="true">
+      <div id="account-pill" class="account-pill">Guest</div>
+      <div id="video-counter" class="video-counter"></div>
+    </aside>
   </main>
+
   <script src="app.js"></script>
 </body>
 </html>
