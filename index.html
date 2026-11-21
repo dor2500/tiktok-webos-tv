@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TikTok</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <!-- Loading Screen -->
+    <section id="loading-screen" class="screen active" aria-live="polite">
+      <div class="logo-stage">
+        <div class="logo-glow"></div>
+        <img src="largeIcon.png" alt="TikTok Logo" class="app-logo" width="160" height="160" />
+      </div>
+      <h1 class="brand-title">TikTok</h1>
+      <div class="loader-track" role="progressbar" aria-label="Loading TikTok">
+        <div class="loader-bar"></div>
+      </div>
+      <p id="status-text" class="status-text">Connecting to TikTok...</p>
+      <div class="remote-hints">
+        <span><kbd>▲</kbd><kbd>▼</kbd> Scroll Feed</span>
+        <span><kbd>OK</kbd> Play / Pause</span>
+        <span><kbd>BACK</kbd> Return / Exit</span>
+      </div>
+    </section>
+
+    <!-- Network Error Fallback Screen -->
+    <section id="error-screen" class="screen" hidden aria-live="assertive">
+      <div class="error-card">
+        <img src="largeIcon.png" alt="TikTok" class="error-logo" width="96" height="96" />
+        <h2 class="error-title">Unable to Reach TikTok</h2>
+        <p id="error-detail" class="error-detail">
+          Please check your TV's internet connection and try again.
+        </p>
+        <div class="error-actions">
+          <button id="retry-btn" class="tv-btn primary" type="button" autofocus>
+            Retry
+          </button>
+          <button id="exit-btn" class="tv-btn secondary" type="button">
+            Exit App
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
