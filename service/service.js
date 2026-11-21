@@ -10,7 +10,7 @@ const USER_AGENT =
 
 const PAIRING_PORT = 8787;
 const STREAM_PORT = 8788;
-const EXPLORE_CATEGORIES = [120, 119, 104, 112, 100, 111, 107];
+let exploreCategories = [120, 119, 104, 112, 100, 111, 107, 105, 106, 108, 109, 110, 113, 114, 115, 116, 117, 118, 121];
 let categoryCursor = 0;
 let pairingServer = null;
 let streamServer = null;
@@ -176,12 +176,23 @@ async function fetchBatch(targetCount, tab, sessionid) {
   const seen = new Set();
   const collected = [];
 
-  // Obtain fresh session cookies (ttwid / tt_chain_token) from explore page
+  // Obtain fresh session cookies (ttwid / tt_chain_token) and dynamic categories from explore page
   const baseCookie = sessionid ? "sessionid=" + sessionid + ";" : "";
   const initPage = await fetchWithCookies("https://www.tiktok.com/explore", baseCookie, 3);
   const cookies = [baseCookie, initPage.cookies].filter(Boolean).join("; ");
 
-  const cat = EXPLORE_CATEGORIES[categoryCursor % EXPLORE_CATEGORIES.length];
+  const initData = extractUniversalData(initPage.body);
+  const catList =
+    initData &&
+    initData["__DEFAULT_SCOPE__"] &&
+    initData["__DEFAULT_SCOPE__"]["webapp.explore.categoryList"] &&
+    initData["__DEFAULT_SCOPE__"]["webapp.explore.categoryList"].categoryList;
+  if (Array.isArray(catList) && catList.length > 0) {
+    const types = catList.map((c) => Number(c.Type)).filter((n) => !Number.isNaN(n) && n > 0);
+    if (types.length > 0) exploreCategories = types;
+  }
+
+  const cat = exploreCategories[categoryCursor % exploreCategories.length];
   categoryCursor++;
 
   const exploreUrl =
@@ -323,7 +334,7 @@ function buildPairingHtml(pin) {
 <body>
   <div class="card">
     <h1>Connect TikTok to LG TV</h1>
-    <p>Enter the 4-digit PIN shown on your TV and your TikTok username. Optionally paste your <code>sessionid</code> cookie from <b>tiktok.com</b> for personalized For You &amp; Following feeds.</p>
+    <p>Enter the 4-digit PIN shown on your TV and your TikTok username.<br/>To connect your <b>real personalized account</b> (Following &amp; For You), paste your <code>sessionid</code> cookie from <b>tiktok.com</b> (Desktop Chrome/Edge: F12 → Application → Cookies → <code>tiktok.com</code> → <code>sessionid</code>).</p>
     <form id="f">
       <label>TV Pairing PIN</label>
       <input id="pin" type="text" inputmode="numeric" maxlength="4" placeholder="e.g. ${pin}" required />

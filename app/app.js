@@ -397,7 +397,7 @@
       ambientBg.style.backgroundImage = "url('" + currentItem.cover + "')";
     }
     videoCounter.textContent = (currentIndex + 1) + " / " + videos.length;
-    if (videos.length - currentIndex <= 2) loadMoreVideos(false);
+    if (videos.length - currentIndex <= 5) loadMoreVideos(false);
   }
 
   function togglePlayback() {
