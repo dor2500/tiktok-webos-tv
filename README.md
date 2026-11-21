@@ -5,35 +5,41 @@
 </p>
 
 <p align="center">
-  <img src="largeIcon.png" alt="TikTok Icon" width="96" />
+  <img src="assets/largeIcon.png" alt="TikTok Icon" width="96" />
 </p>
 
-A clean, TV-optimized **LG webOS** `.ipk` application (`com.dorp.tiktok.tv`) that wraps TikTok (`https://www.tiktok.com`) for full-screen 1080p playback on LG Smart TVs, complete with official branding assets, a dark-mode loading screen, TV remote key handling, and a network fallback screen.
+A phone-style **LG webOS** `.ipk` application (`com.dorp.tiktok.tv`) built for 1080p LG Smart TVs. Instead of redirecting to the desktop website, it renders an authentic **9:16 vertical mobile TikTok UI** centered on the TV screen with a bundled **webOS Node.js Service** (`com.dorp.tiktok.tv.service`) that fetches the `For You` video feed directly.
 
 ## Features
 
-- **1080p Full-Screen TV Experience**: Configured for `1920x1080` resolution with `#000000` background and custom splash screen.
-- **Official Branding Assets**: Launcher icons (`80x80`, `130x130`) and `1920x1080` splash background generated from extracted TikTok APK resources.
-- **TV Remote & Magic Remote Support**:
-  - `▲` / `▼` D-Pad scrolling for feeds and error-screen navigation
-  - `OK` / `Enter` / `Play` / `Pause` playback & action triggers
-  - `BACK` (`461`) / `Return` handling via `webOS.platformBack()`
-  - Magic Remote pointer hover and focus rings
-- **Network Fallback Screen**: Detects offline/unreachable states with a focusable **Retry** and **Exit App** prompt.
+- **Phone-Style 9:16 TV Stage**: Centered vertical video feed (`608×1080`) with an ambient blurred backdrop derived from the active video cover.
+- **Smooth Swipe Transitions**: Press `▲` / `▼` (or use the Magic Remote scroll wheel) to smoothly slide between videos with automatic background pre-fetching.
+- **Mobile Action Rail & Metadata**: Creator avatar, interactive Like (`♥`) and Bookmark (`🔖`) toggles, comment/share counts, spinning music disc, caption, sound ticker, and playback progress bar.
+- **Bundled webOS JS Service (`service/`)**: Runs on-device via Luna Bus (`luna://com.dorp.tiktok.tv.service/getFeed`) to fetch TikTok feed items without CORS limitations.
+- **TV Remote Controls**:
+  - `▲` / `▼` or Scroll Wheel: Next / Previous video
+  - `OK` / `Enter` / `Play` / `Pause`: Play / Pause
+  - `◀` / `▶`: Toggle Like
+  - `BACK` / `Stop`: Exit app
 
 ## Project Structure
 
 ```text
 tiktok-webos-tv/
-├── appinfo.json          # webOS app manifest (com.dorp.tiktok.tv)
-├── index.html            # Loading & error fallback UI
-├── style.css             # 1080p dark-mode TV styling
-├── app.js                # Connectivity probe, launcher & remote key handler
-├── icon.png              # 80x80 webOS launcher icon
-├── largeIcon.png         # 130x130 webOS large launcher icon
-├── splashBackground.png  # 1920x1080 dark splash screen
-├── assets/               # Source branding & README banner assets
-└── dist/                 # Packaged .ipk output (generated)
+├── app/
+│   ├── appinfo.json          # webOS app manifest (com.dorp.tiktok.tv)
+│   ├── index.html            # 9:16 phone-style feed UI & overlays
+│   ├── style.css             # Dark-mode 1080p TV & mobile-feed styling
+│   ├── app.js                # Luna service client, video feed & remote controls
+│   ├── icon.png              # 80x80 webOS launcher icon
+│   ├── largeIcon.png         # 130x130 webOS large launcher icon
+│   └── splashBackground.png  # 1920x1080 dark splash screen
+├── service/
+│   ├── package.json          # webOS JS service manifest
+│   ├── services.json         # Luna service registration (com.dorp.tiktok.tv.service)
+│   └── service.js            # Node.js TikTok feed fetcher
+├── assets/                   # Branding & README banner assets
+└── dist/                     # Packaged .ipk releases
 ```
 
 ## Build & Install
@@ -50,10 +56,10 @@ tiktok-webos-tv/
 ### Package to `.ipk`
 
 ```bash
-ares-package . -o dist -e "README.md" -e ".gitignore" -e "assets/preview-banner.png"
+ares-package app service -o dist
 ```
 
-This outputs `dist/com.dorp.tiktok.tv_1.0.0_all.ipk`.
+This outputs `dist/com.dorp.tiktok.tv_1.1.0_all.ipk`.
 
 ### Deploy & Launch on LG TV
 
@@ -62,7 +68,7 @@ This outputs `dist/com.dorp.tiktok.tv_1.0.0_all.ipk`.
 ares-setup-device --list
 
 # Install the IPK (replace 'tv' with your device name)
-ares-install -d tv dist/com.dorp.tiktok.tv_1.0.0_all.ipk
+ares-install -d tv dist/com.dorp.tiktok.tv_1.1.0_all.ipk
 
 # Launch TikTok on the TV
 ares-launch -d tv com.dorp.tiktok.tv

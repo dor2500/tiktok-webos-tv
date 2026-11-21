@@ -1,0 +1,9 @@
+{
+  "id": "com.dorp.tiktok.tv.service",
+  "description": "TikTok Feed Fetcher Service",
+  "services": [
+    {
+      "name": "com.dorp.tiktok.tv.service"
+    }
+  ]
+}

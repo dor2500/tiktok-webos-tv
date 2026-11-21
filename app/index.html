@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TikTok</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app" class="tv-stage">
+    <!-- Subtle ambient background from active video cover -->
+    <div id="ambient-bg" class="ambient-bg"></div>
+
+    <!-- Left OLED-safe remote hints -->
+    <aside class="side-hints left" aria-hidden="true">
+      <div class="hint-row"><kbd>▲</kbd><kbd>▼</kbd><span>Swipe Video</span></div>
+      <div class="hint-row"><kbd>OK</kbd><span>Play / Pause</span></div>
+      <div class="hint-row"><kbd>▶</kbd><span>Like Video</span></div>
+      <div class="hint-row"><kbd>BACK</kbd><span>Exit</span></div>
+    </aside>
+
+    <!-- Centered 9:16 Phone Viewport -->
+    <section id="phone-viewport" class="phone-viewport" aria-label="TikTok Feed">
+      <!-- Top Mobile Header -->
+      <header class="mobile-header">
+        <div class="header-tabs">
+          <button id="tab-following" class="header-tab" type="button">Following</button>
+          <button id="tab-foryou" class="header-tab active" type="button">For You</button>
+        </div>
+      </header>
+
+      <!-- Sliding Vertical Feed -->
+      <div id="feed-track" class="feed-track"></div>
+
+      <!-- Center Play/Pause Overlay -->
+      <div id="play-badge" class="play-badge" hidden>
+        <svg viewBox="0 0 48 48" width="64" height="64" fill="currentColor">
+          <path d="M16 10v28l22-14z" />
+        </svg>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div id="loading-overlay" class="overlay-screen">
+        <img src="largeIcon.png" alt="TikTok" class="loading-logo" width="112" height="112" />
+        <div class="loader-track">
+          <div class="loader-bar"></div>
+        </div>
+        <p id="status-text" class="status-text">Loading For You feed...</p>
+      </div>
+
+      <!-- Error Fallback Overlay -->
+      <div id="error-overlay" class="overlay-screen" hidden>
+        <img src="largeIcon.png" alt="TikTok" class="error-logo" width="84" height="84" />
+        <h2 class="error-title">Couldn't Load Feed</h2>
+        <p id="error-detail" class="error-detail">
+          Please check your TV's internet connection and try again.
+        </p>
+        <div class="error-actions">
+          <button id="retry-btn" class="tv-btn primary focused" type="button">Retry</button>
+          <button id="exit-btn" class="tv-btn secondary" type="button">Exit</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right status / queue indicator -->
+    <aside class="side-hints right" aria-hidden="true">
+      <div id="video-counter" class="video-counter"></div>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "com.dorp.tiktok.tv.service",
+  "version": "1.1.0",
+  "description": "TikTok Feed Fetcher Service for LG webOS",
+  "main": "service.js"
+}
