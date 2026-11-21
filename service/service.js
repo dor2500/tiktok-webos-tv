@@ -9,7 +9,12 @@ const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 const PAIRING_PORT = 8787;
+const STREAM_PORT = 8788;
+const EXPLORE_CATEGORIES = [120, 119, 104, 112, 100, 111, 107];
+let categoryCursor = 0;
 let pairingServer = null;
+let streamServer = null;
+const videoStreamMap = new Map();
 let pairingState = {
   active: false,
   pin: "",
@@ -29,7 +34,7 @@ function getLanIp() {
   return "192.168.1.5";
 }
 
-function fetchText(url, sessionid, redirectsLeft) {
+function fetchWithCookies(url, cookieStr, redirectsLeft) {
   return new Promise((resolve, reject) => {
     const headers = {
       "User-Agent": USER_AGENT,
@@ -37,11 +42,14 @@ function fetchText(url, sessionid, redirectsLeft) {
       "Accept-Language": "en-US,en;q=0.9",
       Referer: "https://www.tiktok.com/"
     };
-    if (sessionid) {
-      headers.Cookie = "sessionid=" + sessionid + ";";
+    if (cookieStr) {
+      headers.Cookie = cookieStr;
     }
 
     const req = https.get(url, { headers }, (res) => {
+      const setCookies = Array.isArray(res.headers["set-cookie"])
+        ? res.headers["set-cookie"].map((c) => c.split(";")[0]).join("; ")
+        : "";
       if (
         res.statusCode >= 300 &&
         res.statusCode < 400 &&
@@ -52,7 +60,7 @@ function fetchText(url, sessionid, redirectsLeft) {
           ? res.headers.location
           : "https://www.tiktok.com" + res.headers.location;
         res.resume();
-        fetchText(nextUrl, sessionid, redirectsLeft - 1).then(resolve, reject);
+        fetchWithCookies(nextUrl, setCookies || cookieStr, redirectsLeft - 1).then(resolve, reject);
         return;
       }
       if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -65,11 +73,61 @@ function fetchText(url, sessionid, redirectsLeft) {
       res.on("data", (chunk) => {
         body += chunk;
       });
-      res.on("end", () => resolve(body));
+      res.on("end", () => resolve({ body, cookies: setCookies || cookieStr || "" }));
     });
     req.setTimeout(10000, () => req.destroy(new Error("Request timeout")));
     req.on("error", reject);
   });
+}
+
+function fetchText(url, sessionid, redirectsLeft) {
+  const cookieStr = sessionid ? "sessionid=" + sessionid + ";" : "";
+  return fetchWithCookies(url, cookieStr, redirectsLeft).then((r) => r.body);
+}
+
+function ensureStreamProxy() {
+  if (streamServer) return;
+  streamServer = http.createServer((req, res) => {
+    if (!req.url || !req.url.startsWith("/video")) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    const qIdx = req.url.indexOf("id=");
+    const id = qIdx !== -1 ? decodeURIComponent(req.url.slice(qIdx + 3).split("&")[0]) : "";
+    const entry = videoStreamMap.get(id);
+    if (!entry || !entry.playAddr) {
+      res.writeHead(404);
+      res.end("Video not found");
+      return;
+    }
+
+    const headers = {
+      "User-Agent": USER_AGENT,
+      Referer: "https://www.tiktok.com/",
+      Cookie: entry.cookies || ""
+    };
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const proxyReq = https.get(entry.playAddr, { headers }, (proxyRes) => {
+      const outHeaders = {
+        "Content-Type": proxyRes.headers["content-type"] || "video/mp4",
+        "Accept-Ranges": proxyRes.headers["accept-ranges"] || "bytes",
+        "Access-Control-Allow-Origin": "*"
+      };
+      if (proxyRes.headers["content-length"]) outHeaders["Content-Length"] = proxyRes.headers["content-length"];
+      if (proxyRes.headers["content-range"]) outHeaders["Content-Range"] = proxyRes.headers["content-range"];
+      res.writeHead(proxyRes.statusCode || 200, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on("error", () => {
+      if (!res.headersSent) res.writeHead(502);
+      res.end();
+    });
+  });
+  streamServer.listen(STREAM_PORT, "127.0.0.1");
 }
 
 function extractUniversalData(html) {
@@ -114,19 +172,52 @@ function mapVideoItem(it) {
 }
 
 async function fetchBatch(targetCount, tab, sessionid) {
+  ensureStreamProxy();
   const seen = new Set();
   const collected = [];
-  const maxAttempts = Math.min(4, Math.max(2, targetCount));
-  const targetUrl =
-    tab === "following" && sessionid
-      ? "https://www.tiktok.com/following"
-      : "https://www.tiktok.com/foryou";
 
-  for (let i = 0; i < maxAttempts && collected.length < targetCount; i++) {
-    const html = await fetchText(targetUrl, sessionid, 3);
-    const data = extractUniversalData(html);
-    if (!data) continue;
-    const scope = data["__DEFAULT_SCOPE__"] || {};
+  // Obtain fresh session cookies (ttwid / tt_chain_token) from explore page
+  const baseCookie = sessionid ? "sessionid=" + sessionid + ";" : "";
+  const initPage = await fetchWithCookies("https://www.tiktok.com/explore", baseCookie, 3);
+  const cookies = [baseCookie, initPage.cookies].filter(Boolean).join("; ");
+
+  const cat = EXPLORE_CATEGORIES[categoryCursor % EXPLORE_CATEGORIES.length];
+  categoryCursor++;
+
+  const exploreUrl =
+    "https://www.tiktok.com/api/explore/item_list/?aid=1988&categoryType=" +
+    cat +
+    "&count=" +
+    Math.max(12, targetCount) +
+    "&device_platform=web_pc";
+
+  try {
+    const apiRes = await fetchWithCookies(exploreUrl, cookies, 2);
+    const parsed = JSON.parse(apiRes.body);
+    const rawList = Array.isArray(parsed.itemList) ? parsed.itemList : [];
+    for (const it of rawList) {
+      if (it && it.video && it.video.playAddr) {
+        const mapped = mapVideoItem(it);
+        if (mapped.id && !seen.has(mapped.id)) {
+          seen.add(mapped.id);
+          videoStreamMap.set(mapped.id, { playAddr: mapped.playAddr, cookies });
+          mapped.playAddr = "http://127.0.0.1:" + STREAM_PORT + "/video?id=" + encodeURIComponent(mapped.id);
+          collected.push(mapped);
+        }
+      }
+    }
+  } catch (e) {
+    // Fallback to foryou SSR if explore API fails
+  }
+
+  if (collected.length === 0) {
+    const fallbackUrl =
+      tab === "following" && sessionid
+        ? "https://www.tiktok.com/following"
+        : "https://www.tiktok.com/foryou";
+    const page = await fetchWithCookies(fallbackUrl, cookies, 3);
+    const data = extractUniversalData(page.body);
+    const scope = (data && data["__DEFAULT_SCOPE__"]) || {};
     const fy = scope["webapp.foryou.video"] || scope["webapp.following.video"] || {};
     const rawList = Array.isArray(fy.itemList) ? fy.itemList : [];
     for (const it of rawList) {
@@ -134,11 +225,14 @@ async function fetchBatch(targetCount, tab, sessionid) {
         const mapped = mapVideoItem(it);
         if (mapped.id && !seen.has(mapped.id)) {
           seen.add(mapped.id);
+          videoStreamMap.set(mapped.id, { playAddr: mapped.playAddr, cookies: page.cookies || cookies });
+          mapped.playAddr = "http://127.0.0.1:" + STREAM_PORT + "/video?id=" + encodeURIComponent(mapped.id);
           collected.push(mapped);
         }
       }
     }
   }
+
   return collected;
 }
 
